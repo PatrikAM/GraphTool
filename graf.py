@@ -593,6 +593,31 @@ class Graph:
             indices.append(node_names.index(name))
         return indices
 
+    def _translate_path_to_edges(self, path):
+        """
+        Given a list of node names representing a path, return the list of edge
+        quadruplets (node1, node2, weight, name) from self.edges that match each
+        consecutive pair in the path.
+        """
+        result = []
+
+        # Build a lookup dictionary: (u, v) -> edge quadruplet
+        edge_map = {(u, v): (u, v, w, name) for (u, v, w, name) in self.edges}
+
+        # Convert path nodes to edges
+        for i in range(len(path) - 1):
+            u = path[i]
+            v = path[i + 1]
+            if (u, v) in edge_map:
+                result.append(edge_map[(u, v)])
+            else:
+                # Optional: raise or ignore missing edges
+                # raise ValueError(f"No edge found for {u} -> {v}")
+                pass
+
+        return result
+
+
     def calculate_node_matrix(self, adjacency=True):
         node_names = [node[0] for node in self.nodes]
         index = {v: i for i, v in enumerate(node_names)}
@@ -1045,9 +1070,17 @@ class Graph:
 
         export_matrix_to_csv(self.graph_name + "_capacity_matrix.csv", capacity_matrix, row_labels=node_names, col_labels=node_names)
 
-        max_flow = goldberg_max_flow(capacity_matrix, source_idx, sink_idx)
+        max_flow, main_path = goldberg_max_flow(capacity_matrix, source_idx, sink_idx)
 
-        print("Max flow: " + str(max_flow))
+        print("Max flow size: " + str(max_flow))
+
+        node_on_path_names = self._translate_node_indices_to_names(main_path[0])
+
+        print("Main path: " + " -> ".join(node_on_path_names))
+
+        print("Main path: ", end="")
+        pretty_print_path(self._translate_path_to_edges(node_on_path_names))
+        print("Main path bottleneck size: " + str(main_path[1]))
 
     def do_nodes_exist(self, nodes):
         node_names = [n[0] for n in self.nodes]
@@ -1058,21 +1091,15 @@ class Graph:
 
 
 def goldberg_max_flow(C, s, t):
-    """
-    Computes the maximum flow in a network using the Push-Relabel (Goldberg) algorithm.
-
-    :param C: Adjacency matrix (List of Lists) where C[u][v] is the capacity of edge u->v.
-    :param s: Index of the source node.
-    :param t: Index of the sink node.
-    :return: The maximum flow value (integer/float).
-    """
-    n = len(C)  # Number of nodes
-    F = [[0] * n for _ in range(n)]  # Flow matrix
+    n = len(C)
+    F = [[0] * n for _ in range(n)]
     height = [0] * n
     excess = [0] * n
 
     def push(u, v):
         d = min(excess[u], C[u][v] - F[u][v])
+        if d <= 0:
+            return
         F[u][v] += d
         F[v][u] -= d
         excess[u] -= d
@@ -1100,27 +1127,73 @@ def goldberg_max_flow(C, s, t):
     # --- Initialization ---
     height[s] = n
     excess[s] = float('inf')
-
-    # Pre-flow: Push max capacity from source to all neighbors
     for v in range(n):
         if C[s][v] > 0:
             push(s, v)
 
-    # --- Main Loop (Relabel-to-Front heuristic) ---
+    # --- Relabel-to-Front ---
     p = 0
     while p < n:
         if p != s and p != t and excess[p] > 0:
             old_height = height[p]
             discharge(p)
             if height[p] > old_height:
-                # If node was relabeled, move to front of list to check dependencies again
                 p = 0
             else:
                 p += 1
         else:
             p += 1
 
-    return excess[t]
+    max_flow = excess[t]
+
+    # --------------------------------------
+    # Build residual positive-flow subgraph
+    # --------------------------------------
+    residual = [[F[u][v] for v in range(n)] for u in range(n)]
+
+    # --------------------------------------
+    # Find all s→t flow paths
+    # --------------------------------------
+    def find_one_path():
+        visited = set()
+        stack = [(s, [s])]
+        while stack:
+            u, path = stack.pop()
+            if u == t:
+                return path
+            visited.add(u)
+            for v in range(n):
+                if residual[u][v] > 0 and v not in visited:
+                    stack.append((v, path + [v]))
+        return None
+
+    paths = []
+    while True:
+        path = find_one_path()
+        if not path:
+            break
+
+        bottleneck = min(residual[path[i]][path[i+1]] for i in range(len(path)-1))
+
+        # remove that flow from residual
+        for i in range(len(path)-1):
+            u = path[i]
+            v = path[i+1]
+            residual[u][v] -= bottleneck
+
+        paths.append((path, bottleneck))
+
+    # --------------------------------------
+    # Return only the strongest path
+    # --------------------------------------
+    if not paths:
+        return max_flow, None
+
+    # pick path with largest bottleneck
+    main_path = max(paths, key=lambda x: x[1])
+
+    return max_flow, main_path
+
 
 
 def floyd_warshall(matrix):
@@ -1370,6 +1443,28 @@ def is_float(s):
         return True
     except ValueError:
         return False
+
+
+def pretty_print_path(path):
+    """
+    Pretty print a path as arrows including weight and optional edge name.
+
+    Example output:
+    S -[20]-> E -[21, 'edge_name']-> C
+    """
+    pieces = []
+    for edge in path:
+        node1, node2, weight, name = edge
+        label_parts = []
+        if weight is not None:
+            label_parts.append(str(weight))
+        if name is not None:
+            label_parts.append(str(name))
+        label = ", ".join(label_parts)
+        pieces.append(f"{node1} -[{label}]-> ")
+    # Append last node
+    pieces.append(path[-1][1])
+    print("".join(pieces))
 
 graph = Graph()
 # TREE = False
