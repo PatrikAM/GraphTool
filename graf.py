@@ -1,11 +1,10 @@
 import csv
 import math
+from copy import deepcopy
 from typing import List, Any
 from collections import deque, defaultdict
 import re
 import heapq
-
-from test2 import find_shortest_path
 
 
 # Class for a single node in the binary tree
@@ -989,7 +988,7 @@ class Graph:
             return distances[node_idx], paths[node_idx]
         if distances:
             dist = list(filter(lambda d: d is not None and d[0] == node2, distances))
-            if dist:
+            if dist != [] and dist[0][1] != math.inf:
                 path = list(filter(lambda d: d is not None and d[-1] == node_idx, paths))
                 return dist[0][1], path[0]
         return None, None
@@ -1007,6 +1006,101 @@ class Graph:
             dist, path = dijkstra(self.distance_matrix, node_idx)
             return list(zip(node_names, dist)), path
 
+    def max_flow(self, source, sink):
+        node_names = [n[0] for n in self.nodes]
+        source_idx = node_names.index(source)
+        sink_idx = node_names.index(sink)
+        capacity_matrix = []
+        for row in self.distance_matrix:
+            r = []
+            for n in row:
+                if n == math.inf:
+                    r.append(0)
+                elif n >= 0:
+                    r.append(n)
+                else:
+                    ValueError("Matice obsahuje zápornou kapacitu")
+                    return
+            capacity_matrix.append(r)
+
+        export_matrix_to_csv(self.graph_name + "_capacity_matrix.csv", capacity_matrix, row_labels=node_names, col_labels=node_names)
+
+        max_flow = goldberg_max_flow(capacity_matrix, source_idx, sink_idx)
+
+        print("Max flow: " + str(max_flow))
+
+    def do_nodes_exist(self, nodes):
+        node_names = [n[0] for n in self.nodes]
+        for node in nodes:
+            if node not in node_names:
+                return False
+        return True
+
+
+def goldberg_max_flow(C, s, t):
+    """
+    Computes the maximum flow in a network using the Push-Relabel (Goldberg) algorithm.
+
+    :param C: Adjacency matrix (List of Lists) where C[u][v] is the capacity of edge u->v.
+    :param s: Index of the source node.
+    :param t: Index of the sink node.
+    :return: The maximum flow value (integer/float).
+    """
+    n = len(C)  # Number of nodes
+    F = [[0] * n for _ in range(n)]  # Flow matrix
+    height = [0] * n
+    excess = [0] * n
+
+    def push(u, v):
+        d = min(excess[u], C[u][v] - F[u][v])
+        F[u][v] += d
+        F[v][u] -= d
+        excess[u] -= d
+        excess[v] += d
+
+    def relabel(u):
+        min_height = float('inf')
+        for v in range(n):
+            if C[u][v] - F[u][v] > 0:
+                min_height = min(min_height, height[v])
+        height[u] = min_height + 1
+
+    def discharge(u):
+        while excess[u] > 0:
+            pushed = False
+            for v in range(n):
+                if C[u][v] - F[u][v] > 0 and height[u] > height[v]:
+                    push(u, v)
+                    pushed = True
+                    if excess[u] == 0:
+                        break
+            if not pushed:
+                relabel(u)
+
+    # --- Initialization ---
+    height[s] = n
+    excess[s] = float('inf')
+
+    # Pre-flow: Push max capacity from source to all neighbors
+    for v in range(n):
+        if C[s][v] > 0:
+            push(s, v)
+
+    # --- Main Loop (Relabel-to-Front heuristic) ---
+    p = 0
+    while p < n:
+        if p != s and p != t and excess[p] > 0:
+            old_height = height[p]
+            discharge(p)
+            if height[p] > old_height:
+                # If node was relabeled, move to front of list to check dependencies again
+                p = 0
+            else:
+                p += 1
+        else:
+            p += 1
+
+    return excess[t]
 
 
 def floyd_warshall(matrix):
