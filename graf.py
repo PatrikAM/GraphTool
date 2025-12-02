@@ -368,6 +368,8 @@ class Graph:
         else:
             self._parse_bin_tree(file_path)
 
+        print(f"\n===================| Graf ({file_path}) |===================\n")
+
     def _parse_bin_tree(self, file_path: str):
         """
         Parses a binary tree from a file in level-order (breadth-first) format.
@@ -709,6 +711,7 @@ class Graph:
             node_names,
             node_names
         )
+        print("\n")
 
     def is_multigraph(self):
         for radek in self.adjacency_matrix:
@@ -870,55 +873,50 @@ class Graph:
         return True
 
     def print_properties(self):
+        def yes_no(value: bool) -> str:
+            return "✅ Ano" if value else "❌ Ne"
 
-        print("\nPocet uzlu: " + str(self.node_count))
-        print("\nUzly: ", end="")
-        print(self.nodes)
-        print("Pocet hran: " + str(self.edges_count))
-
-        print("Orientovany: " + str(self.is_oriented))
-        is_multigraph_bool = self.is_multigraph()
-        print("Multigraf: " + str(is_multigraph_bool))
-        if is_multigraph_bool:
+        print(f"Počet uzlů ({self.node_count})")
+        print(f"Počet hran ({self.edges_count})\n")
+        print(f"{'a. Hranově ohodnocený':<25} {yes_no(self.is_weighted):<9}| Hrany mají číselnou váhu")
+        print(f"{'   Uzlově ohodnocený':<25} {yes_no(self.is_ranked):<9}| Uzly mají číselnou váhu")
+        print(f"{'b. Orientovaný':<25} {yes_no(self.is_oriented):<9}| Záleží na směru hran")            
+        if self.is_oriented:
+            print(f"{'c. Slabě souvislý':<25} {yes_no(self.is_connected()):<9}| Mezi každými dvěma vrcholy existuje sled, pokud nebereme v potaz orientaci hran")
+            print(f"{'   Silně souvislý':<25} {yes_no(self.is_strongly_connected()):<9}| Mezi každými dvěma vrcholy existuje sled při zachování orientace hran")
+        else:
+            print(f"{'c. Souvislý':<25} {yes_no(self.is_connected()):<9}| Mezi každými dvěma vrcholy existuje sled")
+        print(f"{'d. Je multigraf':<25} {yes_no(not self.is_simple()):<9}| Multigraf obsahuje násobné hrany")
+        print(f"{'   Je prostý':<25} {yes_no(self.is_simple()):<9}| Prostý graf neobsahuje násobné hrany")
+        print(f"{'e. Obsahuje smyčky':<25} {yes_no(not self.is_plain()):<9}| Obsahuje smyčky (hrany vedoucí z uzlu do stejného uzlu)")
+        print(f"{'   Jednoduchý':<25} {yes_no(self.is_plain() and self.is_simple()):<9}| Jednoduchý graf neobsahuje násobné hrany (je prostý) a neobsahuje smyčky")
+        # print(f"{'f. Rovinný':<25} {"⚠️ Nevím":<11}| Lze nakreslit bez protnutí hran")
+        print(f"{'g. Konečný':<25} {yes_no(True):<9}| Množina uzlů a hran má konečný počet prvků")
+        print(f"{'h. Úplný':<25} {yes_no(self.is_complete()):<9}| Každé dva uzly jsou obousměrně propojeny")
+        print(f"{'i. Regulární':<25} {yes_no(self.is_regular()):<9}| Všechny uzly mají stejný stupeň")
+        print(f"{'j. Bipartitní':<25} {yes_no(self.is_bipartite()):<9}| Uzly tvoří dvě disjunktní množiny v rámci nichž nejsou navzájem propojené")
+        print(f"{'k. Reflexivní':<25} {yes_no(self.is_reflexive()):<9}| Každý uzel obsahuje smyčku (jedničky na celé diagonále)")
+        print("\n")
+        if not self.is_simple(): # je multigraf
             RED = "\033[91m"
             END = "\033[0m"
-            print(
-                f"{RED}Bacha, graf je multigraf a algoritmy zalozene na matici sousednosti nemusi fungovat spravne{END}")
+            print(f"{RED}Bacha, graf je multigraf a algoritmy zalozene na matici sousednosti nemusi fungovat spravne{END}")
+            print("\n")
 
-        if self.is_complete():
-            print("Uplny: True")
-            print("Souvisly: True") # TODO: check this, uplny graf je souvisly
-            print("Regularni: True")
-        else:
-            print("Uplny: False")
-            print("Regularni: " + str(self.is_regular()))
-            connected = self.is_connected()
-            strongly_connected = self.is_strongly_connected()
-            if strongly_connected and connected:
-                print("Souvisly: True - Souvisly silne")
-            elif connected and not strongly_connected and self.is_oriented:
-                print("Souvisly: True - Souvisly slabe")
-            elif connected and not strongly_connected and not self.is_oriented:
-                print("Slabe souvisly: True")
-            else:
-                print("Souvisly: False")
+    def print_nodes(self):
+        print(f"======| Uzly ({self.node_count}) |======")
+        print("[(název uzlu, ohodnocení uzlu), ...]\n")
+        print(self.nodes)
+        print("\n")
 
-        print("Má smyčky: " + str(self.has_self_loop()))
-        print("Má 1 na celé diagonále: " + str(self.is_reflexive()))
-
-        if self.is_simple():
-            print("Prosty: True")
-            if self.is_plain():
-                print("Jednoduchy: True")
-        else:
-            print("Prosty: False")
-            print("Jednoduchy: False")
-        print("Bipartitni:" + str(self.is_bipartite()))
-
-        print("Hranove ohodnoceny: " + str(self.is_weighted))
-        print("Uzlove ohodnoceny: " + str(self.is_ranked))
+    def print_edges(self):
+        print(f"======| Hrany ({self.edges_count}) |======")
+        print("[(počáteční uzel, koncový uzel, ohodnocení hrany, název hrany), ...]\n")
+        print(self.edges)
+        print("\n")
 
     def print_node_properties(self, node_name):
+        print(f"======| Vlastnosti uzlu ({node_name}) |======")
         edge_labels = []
 
         if self.edges != [] and self.edges[0][3] is not None:
@@ -957,19 +955,20 @@ class Graph:
 
         if self.is_oriented:
             print(
-                "Vstupni okoli pro uzel " + str(
+                "Výstupní okolí uzlu: " + str(
                     in_neighbors.get(node_name, [])))
-            print("Vystupni okoli pro uzel " + str(
+            print("Vstupní okolí uzlu: " + str(
                 out_neighbors.get(node_name, [])))
-            print("Vstupni stupen uzlu " + str(in_degree.get(node_name, 0)))
-            print("Vystupni stupen uzlu " + str(out_degree.get(node_name, 0)))
-            print("Predchudci uzlu " + str(predecessors.get(node_name, [])))
-            print("Naslednici uzlu " + str(successors.get(node_name, [])))
+            print("Vstupní stupěň uzlu: " + str(in_degree.get(node_name, 0)))
+            print("Výstupní stupěň uzlu: " + str(out_degree.get(node_name, 0)))
+            print("Předchůdci uzlu: " + str(predecessors.get(node_name, [])))
+            print("Následníci uzlu: " + str(successors.get(node_name, [])))
         else:
-            print("Okoli ", end="")
+            print("Okolí: ", end="")
             print(okoli)
-            print("Sousede uzlu " + str(neighbors.get(node_name, [])))
-            print("Stupen uzlu " + str(degree.get(node_name, 0)))
+            print("Sousedé uzlu:  " + str(neighbors.get(node_name, [])))
+            print("Stupeň uzlu:  " + str(degree.get(node_name, 0)))
+        print("\n")
 
     def get_count_paths_matrix(self, length):
         # u neorientovaného zajistíme symetrii (pro účely počítání cest)
@@ -1478,12 +1477,17 @@ def pretty_print_path(path):
     pieces.append(path[-1][1])
     print("".join(pieces))
 
+
+
+# ======================| VLASTNÍ KÓD |======================
+
 graph = Graph()
-# TREE = False
-# if TREE:
-#     graph.parse(file_path="tree.tg", is_tree=True)
-# else:
-#     graph.parse(file_path="graph.tg")
-    # graph.print_properties()
-    # graph.export_matrices()
-    # print(floyd_warshall(graph.distance_matrix))
+graph.parse(file_path="samples/21.tg", is_tree=False)
+
+graph.print_properties()    # vypíše základní vlastnosti grafu
+graph.print_nodes()         # vypíše všechny uzly
+graph.print_edges()         # vypíše všechny hrany
+
+graph.print_node_properties("A1") # vypíše vlastnosti uzlu A1
+
+graph.export_matrices() # exportuje všechny dostupné matice do CSV
