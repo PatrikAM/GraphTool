@@ -1050,6 +1050,50 @@ class Graph:
             dist, path = dijkstra(self.distance_matrix, node_idx)
             return list(zip(node_names, dist)), path
 
+    def find_widest_path(self, start, end):
+        import heapq
+        import math
+
+        node_names = [n[0] for n in self.nodes]
+        if start not in node_names or end not in node_names:
+            return None, []
+
+        n = len(self.nodes)
+        start_idx = node_names.index(start)
+        end_idx = node_names.index(end)
+
+        # Max-heap stores (-width, node, path)
+        heap = [(-math.inf, start_idx, [start_idx])]
+        max_width = [-math.inf] * n
+        max_width[start_idx] = math.inf   # <-- FIXED
+
+        while heap:
+            neg_width, u, path = heapq.heappop(heap)
+            width = -neg_width
+
+            if u == end_idx:
+                return width, [node_names[i] for i in path]
+
+            for v in range(n):
+                w = self.distance_matrix[u][v]
+                if w != math.inf:
+                    # bottleneck
+                    new_width = min(width, w)
+
+                    if new_width > max_width[v]:
+                        max_width[v] = new_width
+                        heapq.heappush(heap, (-new_width, v, path + [v]))
+
+        return None, []
+    
+    def print_widest_path(self, start, end):
+        width, path = self.find_widest_path(start, end)
+        if width is not None:
+            print("Widest path capacity:", width)
+            print("Path:", " -> ".join(path))
+        else:
+            print("No path found.")
+
     def max_flow(self, source, sink):
         node_names = [n[0] for n in self.nodes]
         source_idx = node_names.index(source)
@@ -1099,7 +1143,6 @@ class Graph:
             if node not in node_names:
                 return False
         return True
-
 
 def goldberg_max_flow(C, s, t):
     n = len(C)
@@ -1482,12 +1525,14 @@ def pretty_print_path(path):
 # ======================| VLASTNÍ KÓD |======================
 
 graph = Graph()
-graph.parse(file_path="samples/21.tg", is_tree=False)
+graph.parse(file_path="samples/06.tg", is_tree=False)
 
 graph.print_properties()    # vypíše základní vlastnosti grafu
 graph.print_nodes()         # vypíše všechny uzly
 graph.print_edges()         # vypíše všechny hrany
 
-graph.print_node_properties("A1") # vypíše vlastnosti uzlu A1
+graph.print_widest_path("A", "D") # nejširší cesta
 
-graph.export_matrices() # exportuje všechny dostupné matice do CSV
+# graph.print_node_properties("A1") # vypíše vlastnosti uzlu A1
+
+# graph.export_matrices() # exportuje všechny dostupné matice do CSV
