@@ -1150,38 +1150,38 @@ class Graph:
                 return False
         return True
 
-    def print_most_dangerous(self, start, end):
-        probability_matrix = []
+    def print_most_dangerous_path(self, start, end):
+        probability_matrix = self.distance_matrix
 
-        for row in self.distance_matrix:
-            r = []
-            for p in row:
-                r.append(1-p)
-            probability_matrix.append(r)
-
-        probability, path = self.find_safest_path(probability_matrix, start, end)
-        print("Safest path probability:", 1-probability)
-        print("Safest path:", end="")
-        pretty_print_path(self._translate_path_to_edges(path))
+        probability, path = self.find_safest_path(probability_matrix, start, end, dangerous=True)
+        print("Most dangerous path probability:", probability)
+        print("Most dangerous path: ", end="")
+        edges = self._translate_path_to_edges(self._translate_node_indices_to_names(path))
+        for idx in range(len(edges)):
+            edges[idx] = (edges[idx][0], edges[idx][1], 1 - edges[idx][2], edges[idx][3])
+        pretty_print_path(edges)
 
     def print_safest_path(self, start, end):
         probability, path = self.find_safest_path(self.distance_matrix, start, end)
         print("Safest path probability:", probability)
-        print("Safest path:", end="")
-        pretty_print_path(self._translate_path_to_edges(path))
+        print("Safest path: ", end="")
+        edges = self._translate_path_to_edges(self._translate_node_indices_to_names(path))
+        pretty_print_path(edges)
 
-    def find_safest_path(self, matrix, start, end):
+    def find_safest_path(self, matrix, start, end, dangerous=False):
         """
         Převede matici pravděpodobností (0-1) na matici logaritmických vah
         a najde cestu.
         """
+
+        node_names = [n[0] for n in self.nodes]
+
         n = self.node_count
         matice_log_vah = [[float('inf')] * n for _ in range(n)]
 
         start_idx = self._translate_node_name_to_index(start)
         end_idx = self._translate_node_name_to_index(end)
 
-        print("--- Přepočet vah ---")
         for r in range(n):
             for c in range(n):
                 p = matrix[r][c]
@@ -1190,18 +1190,22 @@ class Graph:
                 # Pokud je p=None nebo 0, ignorujeme
                 if p is not None and p > 0:
                     # Klíčový řádek: w = -ln(p)
-                    vaha = -math.log(p)
+                    if p == math.inf:
+                        vaha = p
+                    else:
+                        if dangerous:
+                            vaha = math.log(p)
+                        else:
+                            vaha = -math.log(p)
                     matice_log_vah[r][c] = vaha
-                    print(
-                        f"Hrana {r}->{c}: pravděpodobnost {p:.2f} => váha {vaha:.4f}")
                 elif r == c:
                     matice_log_vah[r][c] = 0  # Cesta z A do A má váhu 0
 
         # Spustíme standardní Bellman-Ford na logaritmech
-        distances, paths = bellman_ford(matice_log_vah, start_idx, end_idx)
+        distances, paths = bellman_ford(matice_log_vah, start_idx)
 
         dist = list(
-            filter(lambda d: d is not None and d[0] == end, distances))
+            filter(lambda d: d is not None and d[0] == end, list(zip(node_names, distances))))
         if dist != [] and dist[0][1] != math.inf:
             path = list(
                 filter(lambda d: d is not None and d[-1] == end_idx, paths))
@@ -1590,14 +1594,20 @@ def pretty_print_path(path):
 # ======================| VLASTNÍ KÓD |======================
 
 graph = Graph()
-graph.parse(file_path="samples/06.tg", is_tree=False)
+
+# doporučuji graf pojmenovat, projeví se v názvu souboru s maticemi
+graph.parse(file_path="samples/22.tg", graph_name="graf_1", is_tree=False)
 
 graph.print_properties()    # vypíše základní vlastnosti grafu
 graph.print_nodes()         # vypíše všechny uzly
 graph.print_edges()         # vypíše všechny hrany
 
-graph.print_widest_path("A", "D") # nejširší cesta
+graph.print_safest_path("A", "B")    # najde nejbezpečnější cestu
 
-# graph.print_node_properties("A1") # vypíše vlastnosti uzlu A1
+# graph.print_most_dangerous_path("A", "B")     # může se objevit ValueError: Negative cycle detected
 
-# graph.export_matrices() # exportuje všechny dostupné matice do CSV
+# graph.print_widest_path("A", "D")             # nejširší cesta
+
+# graph.print_node_properties("A1")             # vypíše vlastnosti uzlu A1
+
+# graph.export_matrices()                       # exportuje všechny dostupné matice do CSV
