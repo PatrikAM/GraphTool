@@ -573,6 +573,26 @@ class Graph:
         self.ones_count = sum([self.adjacency_matrix[i][i] for i in range(self.node_count)])
         self.zeroes_count = self.node_count - self.ones_count
 
+    def _translate_node_index_to_name(self, index):
+        names = self._translate_node_indices_to_names(index)
+        if names:
+            return names[0]
+        return None
+
+    def _translate_node_indices_to_names(self, indices):
+        node_names = [node[0] for node in self.nodes]
+        names = []
+        for index in indices:
+            names.append(node_names[index])
+        return names
+
+    def _translate_node_names_to_indices(self, names):
+        indices = []
+        node_names = [node[0] for node in self.nodes]
+        for name in names:
+            indices.append(node_names.index(name))
+        return indices
+
     def calculate_node_matrix(self, adjacency=True):
         node_names = [node[0] for node in self.nodes]
         index = {v: i for i, v in enumerate(node_names)}
