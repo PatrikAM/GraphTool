@@ -1082,6 +1082,18 @@ class Graph:
         pretty_print_path(self._translate_path_to_edges(node_on_path_names))
         print("Main path bottleneck size: " + str(main_path[1]))
 
+    def may_be_network(self, check_for_path=False, node1=None, node2=None):
+        sink_and_source_connected = True
+        if check_for_path:
+            path = self.find_shortest_path(node1, node2)
+            sink_and_source_connected = path != (None, None)
+        return (
+                not self.has_negative_edges
+                and self.is_oriented
+                and self.is_weighted
+                and sink_and_source_connected
+        )
+
     def do_nodes_exist(self, nodes):
         node_names = [n[0] for n in self.nodes]
         for node in nodes:
