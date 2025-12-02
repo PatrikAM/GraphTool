@@ -581,6 +581,12 @@ class Graph:
             return names[0]
         return None
 
+    def _translate_node_name_to_index(self, node_name):
+        indices = self._translate_node_names_to_indices([node_name])
+        if indices:
+            return indices[0]
+        return None
+
     def _translate_node_indices_to_names(self, indices):
         node_names = [node[0] for node in self.nodes]
         names = []
@@ -1143,6 +1149,65 @@ class Graph:
             if node not in node_names:
                 return False
         return True
+
+    def print_most_dangerous(self, start, end):
+        probability_matrix = []
+
+        for row in self.distance_matrix:
+            r = []
+            for p in row:
+                r.append(1-p)
+            probability_matrix.append(r)
+
+        probability, path = self.find_safest_path(probability_matrix, start, end)
+        print("Safest path probability:", 1-probability)
+        print("Safest path:", end="")
+        pretty_print_path(self._translate_path_to_edges(path))
+
+    def print_safest_path(self, start, end):
+        probability, path = self.find_safest_path(self.distance_matrix, start, end)
+        print("Safest path probability:", probability)
+        print("Safest path:", end="")
+        pretty_print_path(self._translate_path_to_edges(path))
+
+    def find_safest_path(self, matrix, start, end):
+        """
+        Převede matici pravděpodobností (0-1) na matici logaritmických vah
+        a najde cestu.
+        """
+        n = self.node_count
+        matice_log_vah = [[float('inf')] * n for _ in range(n)]
+
+        start_idx = self._translate_node_name_to_index(start)
+        end_idx = self._translate_node_name_to_index(end)
+
+        print("--- Přepočet vah ---")
+        for r in range(n):
+            for c in range(n):
+                p = matrix[r][c]
+
+                # Pokud je p=0, hrana je neprůchozí (váha inf)
+                # Pokud je p=None nebo 0, ignorujeme
+                if p is not None and p > 0:
+                    # Klíčový řádek: w = -ln(p)
+                    vaha = -math.log(p)
+                    matice_log_vah[r][c] = vaha
+                    print(
+                        f"Hrana {r}->{c}: pravděpodobnost {p:.2f} => váha {vaha:.4f}")
+                elif r == c:
+                    matice_log_vah[r][c] = 0  # Cesta z A do A má váhu 0
+
+        # Spustíme standardní Bellman-Ford na logaritmech
+        distances, paths = bellman_ford(matice_log_vah, start_idx, end_idx)
+
+        dist = list(
+            filter(lambda d: d is not None and d[0] == end, distances))
+        if dist != [] and dist[0][1] != math.inf:
+            path = list(
+                filter(lambda d: d is not None and d[-1] == end_idx, paths))
+            return math.exp(-1*dist[0][1]), path[0]
+        return None, 0.0
+
 
 def goldberg_max_flow(C, s, t):
     n = len(C)
