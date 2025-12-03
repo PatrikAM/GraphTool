@@ -1121,7 +1121,7 @@ class Graph:
 
         export_matrix_to_csv(self.graph_name + "_capacity_matrix.csv", capacity_matrix, row_labels=node_names, col_labels=node_names)
 
-        max_flow, main_path = goldberg_max_flow(capacity_matrix, source_idx, sink_idx)
+        max_flow, main_path, paths = goldberg_max_flow(capacity_matrix, source_idx, sink_idx)
 
         print("Max flow size: " + str(max_flow))
 
@@ -1132,6 +1132,10 @@ class Graph:
         print("Main path: ", end="")
         pretty_print_path(self._translate_path_to_edges(node_on_path_names))
         print("Main path bottleneck size: " + str(main_path[1]))
+
+        for path in paths:
+            edges = self._translate_node_indices_to_names(path[0])
+            pretty_print_path(self._translate_path_to_edges(edges))
 
     def may_be_network(self, check_for_path=False, node1=None, node2=None):
         sink_and_source_connected = True
@@ -1317,7 +1321,7 @@ def goldberg_max_flow(C, s, t):
     # pick path with largest bottleneck
     main_path = max(paths, key=lambda x: x[1])
 
-    return max_flow, main_path
+    return max_flow, main_path, paths
 
 
 
@@ -1603,10 +1607,7 @@ graph.print_properties()    # vypíše základní vlastnosti grafu
 graph.print_nodes()         # vypíše všechny uzly
 graph.print_edges()         # vypíše všechny hrany
 
-graph.print_safest_path("A", "B")  # najde nejbezpečnější cestu
-
-graph.print_shortest_path("A", "B")
-graph.print_shortest_path("A", "B", floydwarshall=True)
+graph.max_flow("A", "B")  # najde nejbezpečnější cestu
 
 # graph.print_most_dangerous_path("A", "B")     # může se objevit ValueError: Negative cycle detected
 
