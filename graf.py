@@ -1048,6 +1048,7 @@ class Graph:
         node_idx = node_names.index(node_name)
         if floydwarshall:
             dist, paths = floyd_warshall(self.distance_matrix)
+            export_matrix_to_csv(self.graph_name + "_floyd_warshall.csv", dist, row_labels=node_names, col_labels=node_names)
             return dist, paths
         if self.has_negative_edges:
             dist, path = bellman_ford(self.distance_matrix, node_idx)
@@ -1602,7 +1603,9 @@ graph.print_properties()    # vypíše základní vlastnosti grafu
 graph.print_nodes()         # vypíše všechny uzly
 graph.print_edges()         # vypíše všechny hrany
 
-graph.print_safest_path("A", "B")    # najde nejbezpečnější cestu
+graph.print_safest_path("A", "B")  # najde nejbezpečnější cestu
+
+graph.find_shortest_path("A", "B", floydwarshall=True)
 
 # graph.print_most_dangerous_path("A", "B")     # může se objevit ValueError: Negative cycle detected
 
