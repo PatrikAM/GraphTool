@@ -1023,19 +1023,20 @@ class Graph:
         distance, path = self.find_shortest_path(node1, node2, floydwarshall=floydwarshall)
         node_names = [n[0] for n in self.nodes]
         if distance:
-            print("Length: " + str(distance))
+            print("Shortest Length: " + str(distance))
             # print("Path: " + str("->".join(path)))
             path_names = [node_names[i] for i in path]
-            print("Path: " + str(" -> ".join(path_names)))
+            print("Shoretest Path: " + str(" -> ".join(path_names)))
         else:
-            print("Cesta neexistuje")
+            print("Shortest Cesta neexistuje")
 
     def find_shortest_path(self, node1, node2, floydwarshall=False):
         distances, paths = self._find_shortest_paths(node1, floydwarshall=floydwarshall)
         node_names = [n[0] for n in self.nodes]
         node_idx = node_names.index(node2)
+        node_idx_start = node_names.index(node1)
         if floydwarshall:
-            return distances[node_idx], paths[node_idx]
+            return distances[node_idx_start][node_idx], paths[node_idx_start][node_idx]
         if distances:
             dist = list(filter(lambda d: d is not None and d[0] == node2, distances))
             if dist != [] and dist[0][1] != math.inf:
@@ -1362,7 +1363,6 @@ def floyd_warshall(matrix):
         [construct_path(i, j) for j in range(n)]
         for i in range(n)
     ]
-
     return dist, paths
 
 
@@ -1605,7 +1605,8 @@ graph.print_edges()         # vypíše všechny hrany
 
 graph.print_safest_path("A", "B")  # najde nejbezpečnější cestu
 
-graph.find_shortest_path("A", "B", floydwarshall=True)
+graph.print_shortest_path("A", "B")
+graph.print_shortest_path("A", "B", floydwarshall=True)
 
 # graph.print_most_dangerous_path("A", "B")     # může se objevit ValueError: Negative cycle detected
 
