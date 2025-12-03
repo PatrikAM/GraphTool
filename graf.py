@@ -1104,8 +1104,12 @@ class Graph:
 
     def max_flow(self, source, sink):
         node_names = [n[0] for n in self.nodes]
-        source_idx = node_names.index(source)
-        sink_idx = node_names.index(sink)
+        try:
+            source_idx = node_names.index(source)
+            sink_idx = node_names.index(sink)
+        except ValueError:
+            print("Source or sink node not found.")
+            return None
         capacity_matrix = []
         for row in self.distance_matrix:
             r = []
@@ -1123,15 +1127,20 @@ class Graph:
 
         max_flow, main_path, paths = goldberg_max_flow(capacity_matrix, source_idx, sink_idx)
 
+        if max_flow is None or paths is None or main_path is None:
+            print("No flow found.")
+            return
+
         print("Max flow size: " + str(max_flow))
 
         node_on_path_names = self._translate_node_indices_to_names(main_path[0])
 
-        print("Main path: " + " -> ".join(node_on_path_names))
+        print("Max flow Main path: " + " -> ".join(node_on_path_names))
 
-        print("Main path: ", end="")
+        print("Max flow Main path: ", end="")
+        print("Max flow all paths: ", end="")
         pretty_print_path(self._translate_path_to_edges(node_on_path_names))
-        print("Main path bottleneck size: " + str(main_path[1]))
+        print("Max flow Main path bottleneck size: " + str(main_path[1]))
 
         for path in paths:
             edges = self._translate_node_indices_to_names(path[0])
@@ -1316,7 +1325,7 @@ def goldberg_max_flow(C, s, t):
     # Return only the strongest path
     # --------------------------------------
     if not paths:
-        return max_flow, None
+        return max_flow, None, None
 
     # pick path with largest bottleneck
     main_path = max(paths, key=lambda x: x[1])
@@ -1601,13 +1610,13 @@ def pretty_print_path(path):
 graph = Graph()
 
 # doporučuji graf pojmenovat, projeví se v názvu souboru s maticemi
-graph.parse(file_path="samples/22.tg", graph_name="graf_1", is_tree=False)
+graph.parse(file_path="samples/21.tg", graph_name="graf_1", is_tree=False)
 
 graph.print_properties()    # vypíše základní vlastnosti grafu
 graph.print_nodes()         # vypíše všechny uzly
 graph.print_edges()         # vypíše všechny hrany
 
-graph.max_flow("A", "B")  # najde nejbezpečnější cestu
+graph.max_flow("A", "B")
 
 # graph.print_most_dangerous_path("A", "B")     # může se objevit ValueError: Negative cycle detected
 
