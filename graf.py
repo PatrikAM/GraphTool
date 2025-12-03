@@ -460,7 +460,7 @@ class Graph:
 
         # Filter out None nodes from node_list for final storage
 
-        self.nodes = [n for n in sorted(node_list) if n is not None]
+        self.nodes = [n for n in node_list if n is not None]
         self.edges = edge_list
 
         self.bin_tree = BinaryTree(None, None)
